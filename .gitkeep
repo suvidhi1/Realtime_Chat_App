@@ -1,0 +1,10 @@
+// Create .gitkeep files to keep directories in git
+const gitkeepDirs = ['uploads/avatars', 'uploads/groups', 'uploads/files'];
+
+gitkeepDirs.forEach(dir => {
+    const gitkeepPath = path.join(__dirname, dir, '.gitkeep');
+    if (!fs.existsSync(gitkeepPath)) {
+        fs.writeFileSync(gitkeepPath, '');
+        console.log(`✅ Created .gitkeep in: ${dir}`);
+    }
+});

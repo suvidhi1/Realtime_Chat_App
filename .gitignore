@@ -1,0 +1,22 @@
+// Also create .gitignore entry for uploaded files
+const gitignoreContent = `
+# Uploaded files (keep structure, ignore content)
+uploads/avatars/*
+uploads/groups/*
+uploads/files/*
+!uploads/avatars/.gitkeep
+!uploads/groups/.gitkeep
+!uploads/files/.gitkeep
+`;
+
+const gitignorePath = path.join(__dirname, '.gitignore');
+let existingGitignore = '';
+
+if (fs.existsSync(gitignorePath)) {
+    existingGitignore = fs.readFileSync(gitignorePath, 'utf8');
+}
+
+if (!existingGitignore.includes('uploads/')) {
+    fs.appendFileSync(gitignorePath, gitignoreContent);
+    console.log('✅ Added upload rules to .gitignore');
+}
