@@ -1,4 +1,3 @@
-// server.js - Complete Fixed Version
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -12,11 +11,15 @@ console.log('Starting Chat Server...');
 // Create HTTP server first
 const server = http.createServer(app);
 
-// FIXED MIDDLEWARE SECTION
-app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true
-}));
+// CORS Configuration
+const allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 
 // Request logging middleware (before parsing)
 app.use((req, res, next) => {
@@ -25,13 +28,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// SIMPLIFIED JSON MIDDLEWARE - Apply to all routes
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Add error handling for malformed JSON
+app.use((error, req, res, next) => {
+    if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+        console.error('❌ Bad JSON:', error.message);
+        return res.status(400).json({ 
+            error: 'Invalid JSON format',
+            message: 'Please check your request body'
+        });
+    }
+    next();
+});
 
 console.log('Middleware loaded...');
 
-// Try loading database connection
+// Database connection
 try {
     console.log('Attempting to load database...');
     const connectDB = require('./server/config/database');
@@ -41,7 +56,7 @@ try {
     console.error('Database connection error:', error.message);
 }
 
-// Try loading Redis connection
+// Redis connection
 try {
     console.log('Attempting to load Redis...');
     const { connectRedis } = require('./server/config/redis');
@@ -51,7 +66,7 @@ try {
     console.error('Redis connection error:', error.message);
 }
 
-// API Information Routes (BEFORE other routes)
+// API Information Routes
 app.get('/', (req, res) => {
     res.json({ 
         message: 'Real-Time Chat API Server',
@@ -79,12 +94,11 @@ app.get('/health', (req, res) => {
     });
 });
 
-// DEBUG DATABASE ROUTES (BEFORE app routes)
+// DEBUG ROUTES
 app.get('/debug/database', async (req, res) => {
     try {
         console.log('🔍 Database debug endpoint hit');
         
-        // Check if models are available
         let User, Chat, Message;
         
         try {
@@ -101,14 +115,12 @@ app.get('/debug/database', async (req, res) => {
             });
         }
 
-        // Get counts
         const userCount = await User.countDocuments();
         const chatCount = await Chat.countDocuments();
         const messageCount = await Message.countDocuments();
 
         console.log(`📊 Counts - Users: ${userCount}, Chats: ${chatCount}, Messages: ${messageCount}`);
 
-        // Get sample data
         const sampleUsers = await User.find().limit(5).select('username email createdAt');
         const sampleChats = await Chat.find().limit(5).select('name isGroup participants createdAt');
         const sampleMessages = await Message.find().limit(5).select('content sender chat createdAt');
@@ -143,7 +155,6 @@ app.get('/debug/database', async (req, res) => {
     }
 });
 
-// Debug specific collection
 app.get('/debug/users', async (req, res) => {
     try {
         const User = require('./server/models/User');
@@ -201,7 +212,6 @@ app.get('/debug/messages', async (req, res) => {
     }
 });
 
-// Test create user endpoint
 app.post('/debug/create-user', async (req, res) => {
     try {
         console.log('🔍 Create user debug endpoint hit with data:', req.body);
@@ -242,7 +252,6 @@ app.post('/debug/create-user', async (req, res) => {
     }
 });
 
-// Test create chat endpoint
 app.post('/debug/create-chat', async (req, res) => {
     try {
         console.log('🔍 Create chat debug endpoint hit');
@@ -250,7 +259,6 @@ app.post('/debug/create-chat', async (req, res) => {
         const Chat = require('./server/models/Chat');
         const User = require('./server/models/User');
         
-        // Get some users for the chat
         const users = await User.find().limit(2);
         
         if (users.length < 1) {
@@ -288,7 +296,6 @@ app.post('/debug/create-chat', async (req, res) => {
     }
 });
 
-// Test create message endpoint
 app.post('/debug/create-message', async (req, res) => {
     try {
         console.log('🔍 Create message debug endpoint hit');
@@ -297,7 +304,6 @@ app.post('/debug/create-message', async (req, res) => {
         const Chat = require('./server/models/Chat');
         const User = require('./server/models/User');
         
-        // Get a user and chat
         const user = await User.findOne();
         const chat = await Chat.findOne();
         
@@ -337,155 +343,66 @@ app.post('/debug/create-message', async (req, res) => {
     }
 });
 
+// Load main routes
+try {
+    console.log('Loading main routes...');
+    
+    // Auth routes
+    const authRoutes = require('./server/routes/auth');
+    app.use('/api/auth', authRoutes);
+    console.log('✅ Auth routes loaded');
+    
+    // Chat routes
+    const chatRoutes = require('./server/routes/chat');
+    app.use('/api/chat', chatRoutes);
+    console.log('✅ Chat routes loaded');
+    
+    // User routes (includes friend functionality)
+    const userRoutes = require('./server/routes/user');
+    app.use('/api/users', userRoutes);
+    console.log('✅ User routes loaded');
 
-// Add this to your server.js after the existing debug routes
-app.post('/debug/create-message-encrypted', async (req, res) => {
+    // Group routes  
+    const groupRoutes = require('./server/routes/group');
+    app.use('/api/groups', groupRoutes);
+    console.log('✅ Group routes loaded');
+    
+    // Optional additional routes (only if files exist)
     try {
-        console.log('🔐 Create encrypted message debug endpoint hit');
-        
-        const Message = require('./server/models/Message');
-        const Chat = require('./server/models/Chat');
-        const User = require('./server/models/User');
-        const { encryptMessage } = require('./server/utils/encryption');
-        
-        const user = await User.findOne();
-        const chat = await Chat.findOne();
-        
-        if (!user || !chat) {
-            return res.status(400).json({
-                error: 'No user or chat found',
-                message: 'Create users and chats first'
-            });
-        }
-        
-        const plainContent = req.body.content || 'Debug encrypted message ' + Date.now();
-        console.log('📝 Original content:', plainContent);
-        
-        // Encrypt the message
-        const encryptedData = encryptMessage(plainContent);
-        console.log('🔐 Encrypted data:', encryptedData);
-        
-        const messageData = {
-            sender: user._id,
-            chat: chat._id,
-            content: JSON.stringify(encryptedData),
-            messageType: 'text',
-            encrypted: true
-        };
-
-        const newMessage = await Message.create(messageData);
-        console.log('✅ Encrypted message created');
-        
-        res.json({
-            success: true,
-            message: 'Encrypted message created successfully',
-            data: {
-                id: newMessage._id,
-                originalContent: plainContent,
-                encryptedInDatabase: newMessage.content,
-                encrypted: newMessage.encrypted,
-                comparison: {
-                    original: plainContent,
-                    stored: newMessage.content,
-                    isEncrypted: plainContent !== newMessage.content
-                }
-            },
-            timestamp: new Date().toISOString()
-        });
+        const searchRoutes = require('./server/routes/search');
+        app.use('/api/search', searchRoutes);
+        console.log('✅ Search routes loaded');
     } catch (error) {
-        console.error('❌ Create encrypted message error:', error);
-        res.status(500).json({
-            error: 'Failed to create encrypted message',
-            message: error.message
-        });
+        console.log('ℹ️ Search routes not found, skipping...');
     }
-});
-
-
-
-// Load main routes AFTER debug routes
-try {
-    console.log('Loading main routes...');
     
-    // Auth routes
-    const authRoutes = require('./server/routes/auth');
-    app.use('/api/auth', authRoutes);
-    console.log('✅ Auth routes loaded');
+    try {
+        const uploadRoutes = require('./server/routes/upload');
+        app.use('/api/upload', uploadRoutes);
+        console.log('✅ Upload routes loaded');
+    } catch (error) {
+        console.log('ℹ️ Upload routes not found, skipping...');
+    }
     
-    // Chat routes
-    const chatRoutes = require('./server/routes/chat');
-    app.use('/api/chat', chatRoutes);
-    console.log('✅ Chat routes loaded');
+    try {
+        const passwordRoutes = require('./server/routes/password');
+        app.use('/api/password', passwordRoutes);
+        console.log('✅ Password routes loaded');
+    } catch (error) {
+        console.log('ℹ️ Password routes not found, skipping...');
+    }
     
-    // User routes
-    const userRoutes = require('./server/routes/user');
-    app.use('/api/users', userRoutes);
-    console.log('✅ User routes loaded');
-
-    // Group routes  
-    const groupRoutes = require('./server/routes/group');
-    app.use('/api/groups', groupRoutes);
-    console.log('✅ Group routes loaded');
-
-    // Add this to your server.js file after the existing routes section
-// (after the "Load main routes AFTER debug routes" comment)
-
-try {
-    console.log('Loading main routes...');
-    
-    // Auth routes
-    const authRoutes = require('./server/routes/auth');
-    app.use('/api/auth', authRoutes);
-    console.log('✅ Auth routes loaded');
-    
-    // Chat routes
-    const chatRoutes = require('./server/routes/chat');
-    app.use('/api/chat', chatRoutes);
-    console.log('✅ Chat routes loaded');
-    
-    // User routes
-    const userRoutes = require('./server/routes/user');
-    app.use('/api/users', userRoutes);
-    console.log('✅ User routes loaded');
-
-    // Group routes  
-    const groupRoutes = require('./server/routes/group');
-    app.use('/api/groups', groupRoutes);
-    console.log('✅ Group routes loaded');
-    
-    // ADD THESE NEW ROUTES:
-    
-    // Friend routes
+    // Friend routes (simplified redirect)
     const friendRoutes = require('./server/routes/friend');
     app.use('/api/friends', friendRoutes);
-    console.log('✅ Friend routes loaded');
-    
-    // Password reset routes
-    const passwordRoutes = require('./server/routes/password');
-    app.use('/api/password', passwordRoutes);
-    console.log('✅ Password routes loaded');
-    
-    // Search routes
-    const searchRoutes = require('./server/routes/search');
-    app.use('/api/search', searchRoutes);
-    console.log('✅ Search routes loaded');
-    
-    // Upload routes
-    const uploadRoutes = require('./server/routes/upload');
-    app.use('/api/upload', uploadRoutes);
-    console.log('✅ Upload routes loaded');
-    
-} catch (error) {
-    console.error('Routes loading error:', error.message);
-    console.error('Stack trace:', error.stack);
-}
+    console.log('✅ Friend routes loaded (redirect only)');
     
 } catch (error) {
     console.error('Routes loading error:', error.message);
     console.error('Stack trace:', error.stack);
 }
 
-// FIXED Error handling middleware
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Express error:', {
         message: err.message,
@@ -494,7 +411,6 @@ app.use((err, req, res, next) => {
         method: req.method
     });
     
-    // Handle JSON parsing errors specifically
     if (err.type === 'entity.parse.failed') {
         return res.status(400).json({ 
             error: 'Invalid JSON format',
@@ -532,7 +448,10 @@ app.use('*', (req, res) => {
             'POST /api/auth/login',
             'GET /api/auth/me',
             'GET /api/chat',
-            'GET /api/users/search'
+            'GET /api/users/search',
+            'GET /api/users/friends',
+            'GET /api/users/friend-requests',
+            'POST /api/users/friend-request'
         ]
     });
 });
@@ -542,16 +461,18 @@ server.listen(PORT, () => {
     console.log(`🚀 Chat Server running on port ${PORT}`);
     console.log(`📡 API URL: http://localhost:${PORT}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📋 Available debug endpoints:`);
-    console.log(`   GET  /debug/database`);
-    console.log(`   GET  /debug/users`);
-    console.log(`   GET  /debug/chats`);
-    console.log(`   GET  /debug/messages`);
-    console.log(`   POST /debug/create-user`);
-    console.log(`   POST /debug/create-chat`);
-    console.log(`   POST /debug/create-message`);
+    console.log(`📋 Available endpoints:`);
+    console.log(`   GET  / - Server info`);
+    console.log(`   GET  /health - Health check`);
+    console.log(`   GET  /api/test - API test`);
+    console.log(`   GET  /debug/database - Database debug`);
+    console.log(`   POST /api/auth/register - User registration`);
+    console.log(`   POST /api/auth/login - User login`);
+    console.log(`   GET  /api/users/friends - Get friends`);
+    console.log(`   GET  /api/users/friend-requests - Get friend requests`);
+    console.log(`   POST /api/users/friend-request - Send friend request`);
     
-    // Setup Socket.IO (simplified for now)
+    // Setup Socket.IO
     try {
         console.log('Setting up Socket.IO...');
         const { handleConnection } = require('./server/utils/socketHandlers');

@@ -266,12 +266,15 @@ const getChatMessages = async (req, res) => {
 };
 
 // Send message
+// Fix sendMessage response to match frontend expectation
 const sendMessage = async (req, res) => {
     try {
-        const { chatId, content, messageType = 'text', replyTo } = req.body;
+        const { content, messageType = 'text', replyTo } = req.body;
+        const chatId = req.params.chatId; // Get from URL params
         const senderId = req.user.id;
 
         console.log(`📍 Sending message to chat ${chatId} from ${req.user.username}`);
+        console.log('Message data:', { content, messageType, replyTo });
 
         // Validation
         if (!content || !content.trim()) {
@@ -293,23 +296,18 @@ const sendMessage = async (req, res) => {
             });
         }
 
-        // Encrypt message content
-        const encryptedData = encryptMessage(content.trim());
-
         // Create message
         const newMessage = await Message.create({
             sender: senderId,
             chat: chatId,
-            content: JSON.stringify(encryptedData),
+            content: content.trim(),
             messageType,
-            encrypted: true,
+            encrypted: false, // Set to false for debugging
             replyTo: replyTo || null,
             readBy: [{ user: senderId, readAt: new Date() }]
         });
 
-        console.log('✅ Message created with ID:', newMessage._id);
-
-        // Update chat's last message and timestamp
+        // Update chat's last message
         await Chat.findByIdAndUpdate(chatId, {
             lastMessage: newMessage._id,
             updatedAt: new Date()
@@ -329,29 +327,23 @@ const sendMessage = async (req, res) => {
             chat.participants.forEach(participant => {
                 const participantId = participant._id.toString();
                 if (participantId !== senderId) {
-                    io.to(participantId).emit('newMessage', {
-                        ...populatedMessage.toObject(),
-                        content: content, // Send decrypted content to real-time listeners
-                        chatId: chatId
-                    });
+                    io.to(participantId).emit('newMessage', populatedMessage);
                 }
             });
         }
 
+        // CRITICAL FIX: Return the correct format
         res.status(201).json({
-            success: true,
-            message: 'Message sent successfully',
-            data: {
-                ...populatedMessage.toObject(),
-                content: content // Return decrypted content
-            }
-        });
+    success: true,
+    message: 'Message sent successfully',
+    message: populatedMessage // Frontend expects 'message', not 'data'
+});
 
     } catch (error) {
         console.error('❌ Send message error:', error);
         res.status(500).json({ 
             error: 'Failed to send message',
-            message: error.message 
+            details: error.message 
         });
     }
 };
