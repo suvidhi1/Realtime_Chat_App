@@ -1,39 +1,104 @@
-# 🚀 Realtime Chat App
+# 💬 Realtime Chat App
 
-<div align="center">
+A modern, feature-rich real-time chat application built with React, TypeScript, Material-UI, and Socket.IO.
 
-![Chat App Banner](https://img.shields.io/badge/Realtime%20Chat%20App-Live-brightgreen?style=for-the-badge)
+![Chat App](https://img.shields.io/badge/Status-Active-brightgreen)
+![React](https://img.shields.io/badge/React-18.x-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
+![Material-UI](https://img.shields.io/badge/Material--UI-5.x-blue)
 
-**A modern, feature-rich real-time chat application with advanced messaging capabilities**
+## 📖 Overview
 
-[![React](https://img.shields.io/badge/React-18.x-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Material-UI](https://img.shields.io/badge/Material--UI-5.x-007FFF?style=flat-square&logo=mui&logoColor=white)](https://mui.com/)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io&logoColor=white)](https://socket.io/)
+Realtime Chat App is a comprehensive messaging platform that enables users to communicate instantly through direct messages and group chats. The application features a modern Material Design interface with support for both light and dark themes, real-time messaging with Socket.IO, file sharing capabilities, and a robust friend system.
 
-[Live Demo](#) • [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation)
+## ✨ Features
 
-</div>
+### 🔐 Authentication
+- User registration and login
+- JWT-based authentication
+- Secure profile management
+- Avatar upload support
 
----
+### 💬 Messaging
+- Real-time messaging with Socket.IO
+- Direct messages between users
+- Group chat functionality
+- Message reactions with emojis
+- Typing indicators
+- Message editing and deletion
+- Reply to messages
+- Read receipts
 
-## 📋 **Project Overview**
+### 👥 Social Features
+- Friend request system
+- Add friends by username
+- Accept/decline friend requests
+- Online status indicators
+- Last seen timestamps
 
-### 🎯 **What is Realtime Chat App?**
+### 📁 File Sharing
+- Image upload with preview
+- File attachments (PDF, DOC, TXT, ZIP)
+- Upload progress indicators
+- File size validation (10MB limit)
 
-A comprehensive real-time messaging platform that enables seamless communication through instant messaging, file sharing, and social networking features. Built with modern web technologies for optimal performance and user experience.
+### 🎨 UI/UX
+- Light/Dark theme toggle
+- Multiple color variants (Blue, Purple, Green, Orange)
+- Auto-detect system theme
+- Responsive design for all devices
+- Smooth animations and transitions
+- Full-height optimized layout
 
-### 🔥 **Key Highlights**
+### 🔧 Advanced Features
+- Message search and filtering
+- User presence system
+- Notification system
+- Chat customization
+- Debug tools for development
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Real-time Messaging** | Instant message delivery with Socket.IO | ✅ Complete |
-| **File Sharing** | Image & document uploads with progress tracking | ✅ Complete |
-| **Theme System** | Light/Dark modes with 4 color variants | ✅ Complete |
-| **Friend System** | Add friends, send requests, manage connections | ✅ Complete |
-| **Group Chats** | Create and manage group conversations | ✅ Complete |
-| **Message Reactions** | Emoji reactions and message interactions | ✅ Complete |
-| **Responsive Design** | Works seamlessly on all devices | ✅ Complete |
+## 🛠️ Tech Stack
 
-### 🏗️ **Architecture Overview**
+**Frontend:**
+- React 18.x with TypeScript
+- Material-UI (MUI) for components
+- Zustand for state management
+- Socket.IO Client for real-time communication
+- React Hot Toast for notifications
+- Date-fns for date formatting
+
+**Backend:**
+- Node.js with Express
+- Socket.IO server
+- MongoDB for data storage
+- JWT for authentication
+- Multer for file uploads
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- MongoDB
+
+### Installation
+
+1. **Clone the repository:**
+- git clone https://github.com/suvidhi1/Realtime_Chat_App.git
+- cd Realtime_Chat_App
+
+2. **Install dependencies**
+- cd chat-frontend
+- npm install
+
+3. **Install additional packages**
+- npm install @react-spring/web zustand date-fns
+
+4. **Environment setup**
+- Create `.env` file:
+- REACT_APP_API_URL=http://localhost:5000/api
+- REACT_APP_SOCKET_URL=http://localhost:5000
+
+5. **Start development server**
+- npm start
 
